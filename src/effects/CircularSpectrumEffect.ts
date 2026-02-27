@@ -70,7 +70,8 @@ export class CircularSpectrumEffect implements IEffect {
       const raw = en > st && binCount > 0 ? s / (en - st) / 255 : 0.3
       const boosted = Math.min(1, raw * 3) // 频段能量扩大三倍
       const t = boosted * (0.5 + mapped.energy)
-      this.heights[i] += (t - this.heights[i]) * 0.15
+      // 稍微减小平滑，让峰值更“尖锐”，有机会偶尔打到顶
+      this.heights[i] += (t - this.heights[i]) * 0.1
     }
     const hue = 0.55 + mapped.high * 0.2
     this.material?.color.copy(new THREE.Color().setHSL(hue, 0.8, 0.6))
@@ -98,8 +99,11 @@ export class CircularSpectrumEffect implements IEffect {
     const maxRadial = baseMaxRadial * heightScale
 
     for (let i = 0; i < N; i++) {
-      // 将频谱能量压缩到 0-1 区间，再乘以当前能量因子（整体放大约 5 倍）
-      const power = Math.min(1, this.heights[i] * 2 * energyFactor * sc * 5)
+      // 将频谱能量压缩到 0-1 区间，再乘以当前能量因子。
+      // 使用二次曲线压缩中等能量，只让非常高的峰值接近 1。
+      const rawPower = this.heights[i] * 1.3 * energyFactor * sc
+      const clamped = Math.min(1, rawPower)
+      const power = clamped * clamped
       let h = Math.max(0.04, power)
 
       const bar = this.bars[i]
