@@ -16,8 +16,11 @@ function EditorContent() {
     isPlaying,
     images,
     activeImageId,
+    backgroundVideoUrl,
+    backgroundVideoFit,
     activeEffectId,
     layers,
+    activeLayerId,
     effectParams,
     audioMapping,
     setAudioFile,
@@ -26,6 +29,7 @@ function EditorContent() {
     setActiveImage,
     addLayer,
     setEffectParam,
+    setLayerRect,
     setAudioMapping,
     canvasConfig,
   } = useEditor()
@@ -36,6 +40,10 @@ function EditorContent() {
 
   const activeImage = images.find((i) => i.id === activeImageId)
   const activeImageUrl = activeImage?.url ?? null
+
+  const handleImportBackgroundVideo = useCallback((_file: File) => {
+    // 背景视频已由 TopBar 内部写入 EditorState（setBackgroundVideo）
+  }, [])
 
   const handleImportAudio = useCallback(
     async (file: File) => {
@@ -74,13 +82,67 @@ function EditorContent() {
 
   const handleSelectEffect = useCallback(
     (id: EffectId) => {
-      if (id === 'particles') {
+      if (id === 'energyField') {
+        addLayer('energyField', {
+          color: '#3fd2ff',
+          opacity: 0.95,
+          intensity: 1.1,
+          radius: 0.62,
+          thickness: 0.08,
+          noise: 1.0,
+          speed: 0.9,
+        })
+      } else if (id === 'planeWaveLattice') {
+        addLayer('planeWaveLattice', {
+          color: '#ff2b2b',
+          opacity: 0.95,
+          pointSize: 0.018,
+          grid: 18,
+          spacing: 0.22,
+          k: 2.8,
+          theta: 0.08,
+          phi: 0.52,
+          omega: 2.2,
+          sharpness: 4.2,
+          amp: 1,
+          rotateSpeed: 0.18,
+          reactOmega: 0.9,
+          reactPointSize: 0.9,
+          reactSharpness: 0.35,
+          reactK: 0.35,
+          reactRotate: 0.65,
+        })
+      } else if (id === 'particles') {
         addLayer('particles', {
           baseSize: 0.04,
           rotationSpeed: 2,
           maxGroups: 20,
           hue: 0.55,
           opacity: 0.8,
+          shape: 0,
+          tilt: 0,
+          rotationMode: 0,
+          planeDir: 0,
+        })
+      } else if (id === 'equalizer') {
+        addLayer('equalizer', {
+          barCount: 128,
+          length: 0.95,
+          color: '#4fc3ff',
+          showReflection: true,
+          showBaseline: true,
+          flipX: false,
+          flipY: false,
+          hue: 0.55,
+          saturation: 0.85,
+          lightness: 0.65,
+          opacity: 0.95,
+          heightScale: 1,
+          reflection: 0.65,
+          glow: 0.9,
+          glowSize: 0.9,
+          gap: 0.25,
+          smoothing: 0.18,
         })
       } else if (id === 'spectrum') {
         addLayer('spectrum', {
@@ -89,6 +151,12 @@ function EditorContent() {
           radius: 0.7,
           barMode: 1,
           heightScale: 0.7,
+          barWidth: 0.5,
+        })
+      } else if (id === 'tunnel') {
+        addLayer('tunnel', {
+          imageEnabled: false,
+          imageMix: 0.6,
         })
       } else {
         addLayer(id)
@@ -98,7 +166,7 @@ function EditorContent() {
   )
 
   const handleEffectParamChange = useCallback(
-    (key: string, value: number | boolean) => {
+    (key: string, value: number | boolean | string) => {
       setEffectParam(key, value)
     },
     [setEffectParam]
@@ -121,7 +189,11 @@ function EditorContent() {
 
   return (
     <>
-      <TopBar onImportAudio={handleImportAudio} onImportImage={handleImportImage} />
+      <TopBar
+        onImportAudio={handleImportAudio}
+        onImportImage={handleImportImage}
+        onImportBackgroundVideo={handleImportBackgroundVideo}
+      />
       <div className="main-layout">
         <LeftPanel
         onPlayPause={handlePlayPause}
@@ -142,7 +214,11 @@ function EditorContent() {
           onProgressUpdate={setProgressDuration}
           onSeekRef={seekRef}
           activeImageUrl={activeImageUrl}
+          backgroundVideoUrl={backgroundVideoUrl}
+          backgroundVideoFit={backgroundVideoFit}
           layers={layers}
+          activeLayerId={activeLayerId}
+          onLayerRectChange={setLayerRect}
           audioMapping={audioMapping}
           canvasConfig={canvasConfig}
         />

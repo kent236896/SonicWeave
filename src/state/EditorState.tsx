@@ -26,8 +26,10 @@ export interface AudioMappingConfig {
 export interface VisualLayer {
   id: string
   effectId: EffectId
-  params: Record<string, number | boolean>
+  params: Record<string, number | boolean | string>
   visible: boolean
+  /** Normalized rect in preview stage (0-1). Does not change preview window size. */
+  rect: { x: number; y: number; w: number; h: number }
 }
 
 export type CanvasMode = 'portrait' | 'landscape' | 'custom'
@@ -47,12 +49,16 @@ export interface EditorStateValue {
   // Images
   images: { id: string; name: string; url: string }[]
   activeImageId: string | null
+  // Background video (separate from image assets)
+  backgroundVideoUrl: string | null
+  backgroundVideoName: string | null
+  backgroundVideoFit: 'cover' | 'contain'
 
   // Effects / Layers
   layers: VisualLayer[]
   activeLayerId: string | null
   activeEffectId: EffectId | null
-  effectParams: Record<string, number | boolean>
+  effectParams: Record<string, number | boolean | string>
 
   // Audio mapping
   audioMapping: AudioMappingConfig
@@ -67,14 +73,18 @@ export interface EditorStateValue {
   addImage: (id: string, name: string, url: string) => void
   setActiveImage: (id: string | null) => void
   removeImage: (id: string) => void
+  setBackgroundVideo: (file: File | null, name: string | null) => void
+  setBackgroundVideoFit: (fit: 'cover' | 'contain') => void
 
   // Layers / effects
-  addLayer: (effectId: EffectId, initialParams?: Record<string, number | boolean>) => void
+  addLayer: (effectId: EffectId, initialParams?: Record<string, number | boolean | string>) => void
   setActiveLayer: (id: string | null) => void
   moveLayer: (id: string, direction: 'up' | 'down') => void
   setLayerVisible: (id: string, visible: boolean) => void
   removeLayer: (id: string) => void
-  setEffectParam: (key: string, value: number | boolean) => void
+  setEffectParam: (key: string, value: number | boolean | string) => void
+  setLayerRect: (id: string, rect: Partial<VisualLayer['rect']>) => void
+  setLayerParam: (id: string, key: string, value: number | boolean | string) => void
 
   setAudioMapping: (c: Partial<AudioMappingConfig>) => void
   setCanvasConfig: (c: Partial<CanvasConfig>) => void
@@ -97,6 +107,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const [isPlaying, setPlaying] = useState(false)
   const [images, setImages] = useState<{ id: string; name: string; url: string }[]>([])
   const [activeImageId, setActiveImageId] = useState<string | null>(null)
+  const [backgroundVideoUrl, setBackgroundVideoUrl] = useState<string | null>(null)
+  const [backgroundVideoName, setBackgroundVideoName] = useState<string | null>(null)
+  const [backgroundVideoFit, setBackgroundVideoFit] = useState<'cover' | 'contain'>('cover')
   const [layers, setLayers] = useState<VisualLayer[]>([])
   const [activeLayerId, setActiveLayerId] = useState<string | null>(null)
   const [audioMapping, setAudioMappingState] = useState<AudioMappingConfig>(defaultMapping)
@@ -124,10 +137,38 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setActiveImageId((current) => (current === id ? null : current))
   }, [])
 
+  const setBackgroundVideo = useCallback((file: File | null, name: string | null) => {
+    setBackgroundVideoUrl((prev) => {
+      if (prev && prev.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(prev)
+        } catch {
+          // ignore
+        }
+      }
+      if (!file) return null
+      return URL.createObjectURL(file)
+    })
+    setBackgroundVideoName(file ? (name ?? file.name) : null)
+  }, [])
+
+  const setBackgroundVideoFitSafe = useCallback((fit: 'cover' | 'contain') => {
+    setBackgroundVideoFit(fit)
+  }, [])
+
   const addLayer = useCallback(
-    (effectId: EffectId, initialParams: Record<string, number | boolean> = {}) => {
+    (effectId: EffectId, initialParams: Record<string, number | boolean | string> = {}) => {
       const id = `layer-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
-      setLayers((prev) => [...prev, { id, effectId, params: initialParams, visible: true }])
+      // 默认图层不要铺满预览窗口：居中 + 留边距，更符合编辑器直觉
+      // Equalizer 镜像频谱默认更“横向”，长度占 90%
+      const w = effectId === 'equalizer' ? 0.9 : 0.8
+      const h = effectId === 'equalizer' ? 0.28 : 0.8
+      const x = (1 - w) / 2
+      const y = (1 - h) / 2
+      setLayers((prev) => [
+        ...prev,
+        { id, effectId, params: initialParams, visible: true, rect: { x, y, w, h } },
+      ])
       setActiveLayerId(id)
     },
     []
@@ -155,20 +196,78 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const removeLayer = useCallback((id: string) => {
-    setLayers((prev) => prev.filter((l) => l.id !== id))
+    setLayers((prev) => {
+      const doomed = prev.find((l) => l.id === id)
+      const url = (doomed?.params as any)?.imageUrl
+      if (typeof url === 'string' && url.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(url)
+        } catch {
+          // ignore
+        }
+      }
+      return prev.filter((l) => l.id !== id)
+    })
     setActiveLayerId((current) => (current === id ? null : current))
   }, [])
 
   const setEffectParam = useCallback(
-    (key: string, value: number | boolean) => {
+    (key: string, value: number | boolean | string) => {
       setLayers((prev) =>
         prev.map((l) =>
-          l.id === activeLayerId ? { ...l, params: { ...l.params, [key]: value } } : l
+          l.id === activeLayerId
+            ? (() => {
+                const prevVal = l.params[key]
+                // 释放旧的 blob URL，避免内存泄漏
+                if (
+                  key === 'imageUrl' &&
+                  typeof prevVal === 'string' &&
+                  prevVal.startsWith('blob:') &&
+                  prevVal !== value
+                ) {
+                  try {
+                    URL.revokeObjectURL(prevVal)
+                  } catch {
+                    // ignore
+                  }
+                }
+                return { ...l, params: { ...l.params, [key]: value } }
+              })()
+            : l
         )
       )
     },
     [activeLayerId]
   )
+
+  const setLayerRect = useCallback((id: string, rect: Partial<VisualLayer['rect']>) => {
+    setLayers((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, rect: { ...l.rect, ...rect } } : l))
+    )
+  }, [])
+
+  const setLayerParam = useCallback((id: string, key: string, value: number | boolean | string) => {
+    setLayers((prev) =>
+      prev.map((l) => {
+        if (l.id !== id) return l
+        const prevVal = l.params[key]
+        // 释放旧的 blob URL，避免内存泄漏（WaveTunnel 专用图片）
+        if (
+          key === 'imageUrl' &&
+          typeof prevVal === 'string' &&
+          prevVal.startsWith('blob:') &&
+          prevVal !== value
+        ) {
+          try {
+            URL.revokeObjectURL(prevVal)
+          } catch {
+            // ignore
+          }
+        }
+        return { ...l, params: { ...l.params, [key]: value } }
+      })
+    )
+  }, [])
 
   const setAudioMapping = useCallback((c: Partial<AudioMappingConfig>) => {
     setAudioMappingState((prev) => ({ ...prev, ...c }))
@@ -190,6 +289,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       isPlaying,
       images,
       activeImageId,
+      backgroundVideoUrl,
+      backgroundVideoName,
+      backgroundVideoFit,
       layers,
       activeLayerId,
       activeEffectId,
@@ -201,12 +303,16 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       addImage,
       setActiveImage,
       removeImage,
+      setBackgroundVideo,
+      setBackgroundVideoFit: setBackgroundVideoFitSafe,
       addLayer,
       setActiveLayer,
       moveLayer,
       setLayerVisible,
       removeLayer,
       setEffectParam,
+      setLayerRect,
+      setLayerParam,
       setAudioMapping,
       setCanvasConfig,
     }),
@@ -216,6 +322,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       isPlaying,
       images,
       activeImageId,
+      backgroundVideoUrl,
+      backgroundVideoName,
+      backgroundVideoFit,
       layers,
       activeLayerId,
       activeEffectId,
@@ -226,12 +335,16 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       addImage,
       setActiveImage,
       removeImage,
+      setBackgroundVideo,
+      setBackgroundVideoFitSafe,
       addLayer,
       setActiveLayer,
       moveLayer,
       setLayerVisible,
       removeLayer,
       setEffectParam,
+      setLayerRect,
+      setLayerParam,
       setAudioMapping,
       setCanvasConfig,
     ]

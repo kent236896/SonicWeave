@@ -8,12 +8,14 @@ import { useEditor } from '@/state/EditorState'
 interface TopBarProps {
   onImportAudio: (file: File) => void
   onImportImage: (file: File) => void
+  onImportBackgroundVideo: (file: File) => void
 }
 
-export function TopBar({ onImportAudio, onImportImage }: TopBarProps) {
-  const { setAudioFile, setPlaying } = useEditor()
+export function TopBar({ onImportAudio, onImportImage, onImportBackgroundVideo }: TopBarProps) {
+  const { setAudioFile, setPlaying, setBackgroundVideo, setCanvasConfig } = useEditor()
   const audioInputRef = useRef<HTMLInputElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null)
 
   const handleAudioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -29,6 +31,46 @@ export function TopBar({ onImportAudio, onImportImage }: TopBarProps) {
     const file = e.target.files?.[0]
     if (file && /^image\/(jpeg|jpg|png)/.test(file.type)) {
       onImportImage(file)
+    }
+    e.target.value = ''
+  }
+
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && file.type.startsWith('video/')) {
+      setBackgroundVideo(file, file.name)
+      onImportBackgroundVideo(file)
+
+      // 读取视频元数据，按比例缩放可视化视图尺寸（canvasConfig）
+      // 目标：长边不超过 1920（避免 4K 之类导致性能/内存压力）
+      const tmpUrl = URL.createObjectURL(file)
+      const v = document.createElement('video')
+      v.preload = 'metadata'
+      v.muted = true
+      v.playsInline = true
+      v.src = tmpUrl
+      const cleanup = () => {
+        try {
+          URL.revokeObjectURL(tmpUrl)
+        } catch {
+          // ignore
+        }
+      }
+      v.onloadedmetadata = () => {
+        const vw = v.videoWidth || 0
+        const vh = v.videoHeight || 0
+        cleanup()
+        if (vw > 0 && vh > 0) {
+          const maxSide = 1920
+          const scale = Math.min(1, maxSide / Math.max(vw, vh))
+          const w = Math.max(320, Math.min(3840, Math.round(vw * scale)))
+          const h = Math.max(320, Math.min(3840, Math.round(vh * scale)))
+          setCanvasConfig({ mode: 'custom', width: w, height: h })
+        }
+      }
+      v.onerror = () => {
+        cleanup()
+      }
     }
     e.target.value = ''
   }
@@ -55,6 +97,13 @@ export function TopBar({ onImportAudio, onImportImage }: TopBarProps) {
         onChange={handleImageChange}
         style={{ display: 'none' }}
       />
+      <input
+        ref={videoInputRef}
+        type="file"
+        accept="video/*"
+        onChange={handleVideoChange}
+        style={{ display: 'none' }}
+      />
       <button
         className="top-bar-btn"
         onClick={() => audioInputRef.current?.click()}
@@ -66,6 +115,12 @@ export function TopBar({ onImportAudio, onImportImage }: TopBarProps) {
         onClick={() => imageInputRef.current?.click()}
       >
         Import Image
+      </button>
+      <button
+        className="top-bar-btn"
+        onClick={() => videoInputRef.current?.click()}
+      >
+        Background Video
       </button>
       <button className="top-bar-btn" onClick={handleExport}>
         Export

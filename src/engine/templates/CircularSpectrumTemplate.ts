@@ -58,14 +58,14 @@ export class CircularSpectrumTemplate implements ITemplate {
   update(audioData: AudioData, _deltaTime: number): void {
     if (!this.group || this.bars.length === 0) return
 
-    const { mapped, frequencyData, binCount } = audioData
+    const { mapped, frequencyData, binCount, resolution } = audioData
     const p = this.mappingSystem.map(mapped)
-    const binsPerBar = Math.max(1, Math.floor(binCount / BAR_COUNT))
+    const step = binCount > 0 ? binCount / BAR_COUNT : 1
 
     for (let i = 0; i < BAR_COUNT; i++) {
       let sum = 0
-      const start = i * binsPerBar
-      const end = Math.min(start + binsPerBar, binCount)
+      const start = Math.floor(i * step)
+      const end = Math.floor((i + 1) * step)
       const range = end - start
       for (let j = start; j < end; j++) {
         sum += frequencyData[j] ?? 0
@@ -80,8 +80,22 @@ export class CircularSpectrumTemplate implements ITemplate {
     this.material?.color.copy(color)
 
     const scale = p.scale ?? 1
+
+    // 基于 canvas 分辨率和相机视锥，动态限制柱子最大高度，
+    // 让不同分辨率下条形始终刚好“填满”可视区域而不会溢出或太矮。
+    const cameraZ = 5
+    const fovRad = (60 * Math.PI) / 180
+    const halfHeight = cameraZ * Math.tan(fovRad / 2)
+    const aspect =
+      resolution && resolution.height > 0
+        ? resolution.width / resolution.height
+        : 1
+    const baseMaxVertical = halfHeight * 0.95
+    const maxVertical = baseMaxVertical * scale
+
     for (let i = 0; i < BAR_COUNT; i++) {
-      const h = Math.max(0.01, this.smoothedHeights[i] * BAR_HEIGHT_SCALE * scale)
+      const rawH = Math.max(0.01, this.smoothedHeights[i] * BAR_HEIGHT_SCALE * scale)
+      const h = Math.min(maxVertical, rawH)
       this.bars[i].scale.y = h / 0.01
       this.bars[i].position.y = h / 2
     }

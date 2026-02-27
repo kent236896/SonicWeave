@@ -6,7 +6,13 @@ import type { Scene } from 'three'
 import type { IEffect } from '../effects/types'
 import type { AudioData } from './types'
 
-export type EffectId = 'particles' | 'spectrum' | 'tunnel'
+export type EffectId =
+  | 'particles'
+  | 'spectrum'
+  | 'tunnel'
+  | 'equalizer'
+  | 'energyField'
+  | 'planeWaveLattice'
 
 export class EffectManager {
   private effects: IEffect[] = []

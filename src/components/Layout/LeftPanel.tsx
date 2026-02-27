@@ -9,6 +9,9 @@ const EFFECT_LABELS: Record<EffectId, string> = {
   particles: 'Particle Bloom',
   spectrum: 'Circular Spectrum',
   tunnel: 'Wave Tunnel',
+  equalizer: 'Equalizer Mirror',
+  energyField: 'Energy Field',
+  planeWaveLattice: 'Plane Wave Lattice',
 }
 
 export function LeftPanel({
@@ -108,7 +111,16 @@ export function LeftPanel({
 
       <div className="panel-section" style={{ flex: 1, overflow: 'auto' }}>
         <div className="panel-section-title">Effects Library</div>
-        {(['particles', 'spectrum', 'tunnel'] as EffectId[]).map(
+        {(
+          [
+            'energyField',
+            'planeWaveLattice',
+            'particles',
+            'equalizer',
+            'spectrum',
+            'tunnel',
+          ] as EffectId[]
+        ).map(
           (id) => (
             <div
               key={id}
