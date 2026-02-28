@@ -60,6 +60,7 @@ export function EditorCanvas({
   const containerRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const bgVideoRef = useRef<HTMLVideoElement>(null)
+  const [hostSize, setHostSize] = useState<{ w: number; h: number }>({ w: 800, h: 600 })
   const [stageSize, setStageSize] = useState<{ w: number; h: number }>({ w: 800, h: 600 })
   const stageSizeRef = useRef(stageSize)
   stageSizeRef.current = stageSize
@@ -232,9 +233,10 @@ export function EditorCanvas({
 
       const renderer = visual.renderer
       const camera = visual.camera
-      const pr = renderer.getPixelRatio()
-      const stageW = stagePx.w * pr
-      const stageH = stagePx.h * pr
+      // Three.js 的 setViewport / setScissor 接收 CSS 像素，内部会自动乘以 pixelRatio。
+      // 不要自己乘 pr，否则 Three.js 会再乘一次（pr² 倍），导致视口超出画布、内容偏移到右上角。
+      const stageW = stagePx.w
+      const stageH = stagePx.h
 
       // 清屏为透明，让棋盘格/底图能透出
       renderer.setScissorTest(false)
@@ -375,6 +377,18 @@ export function EditorCanvas({
     }
   }, [backgroundVideoUrl, isPlaying, syncVideoToAudio])
 
+  // 监听父容器（center-panel）可用尺寸，用于计算保持长宽比的画布大小
+  useEffect(() => {
+    const parent = containerRef.current?.parentElement
+    if (!parent) return
+    const update = () =>
+      setHostSize({ w: Math.max(1, parent.clientWidth), h: Math.max(1, parent.clientHeight) })
+    const ro = new ResizeObserver(update)
+    ro.observe(parent)
+    update()
+    return () => ro.disconnect()
+  }, [])
+
   // 跟踪预览窗口真实像素尺寸（用于拖拽/缩放的像素到归一化换算）
   useEffect(() => {
     const stage = stageRef.current
@@ -500,8 +514,20 @@ export function EditorCanvas({
     }
   }, [isPlaying, onSeekRef, syncVideoToAudio])
 
-  const aspect = canvasConfig.height > 0 ? canvasConfig.width / canvasConfig.height : 1
-  const maxWidth = canvasConfig.mode === 'portrait' ? canvasConfig.width : Math.min(canvasConfig.width, 1280)
+  // 根据用户设置的 canvas 尺寸和父容器可用空间，计算保持长宽比的精确像素大小
+  const fittedSize = useMemo(() => {
+    const cw = Math.max(1, canvasConfig.width)
+    const ch = Math.max(1, canvasConfig.height)
+    const aspect = cw / ch
+    const avail = hostSize
+    let w = avail.w
+    let h = w / aspect
+    if (h > avail.h) {
+      h = avail.h
+      w = h * aspect
+    }
+    return { w: Math.max(1, Math.floor(w)), h: Math.max(1, Math.floor(h)) }
+  }, [canvasConfig.width, canvasConfig.height, hostSize])
 
   const commitRect = useCallback(
     (id: string, rect: VisualLayer['rect']) => {
@@ -515,7 +541,7 @@ export function EditorCanvas({
     <div
       ref={containerRef}
       className="canvas-container"
-      style={{ maxWidth, aspectRatio: aspect }}
+      style={{ width: fittedSize.w, height: fittedSize.h }}
     >
       <div
         ref={stageRef}
