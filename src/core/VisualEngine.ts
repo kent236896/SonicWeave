@@ -19,6 +19,11 @@ export interface VisualEngineConfig {
   bloomRadius?: number
   /** If true, canvas supports alpha and clears with transparent background */
   transparent?: boolean
+  /**
+   * Preserve the drawing buffer so the canvas can be reliably read (e.g. drawImage/toBlob during export).
+   * Note: This may reduce performance, but avoids "blank frames" when capturing WebGL output.
+   */
+  preserveDrawingBuffer?: boolean
 }
 
 export class VisualEngine {
@@ -33,7 +38,14 @@ export class VisualEngine {
     const devicePR = window.devicePixelRatio || 1
     // 轻量级超采样：提高一点内部分辨率，减弱几何边缘锯齿
     const defaultPR = Math.min(2, devicePR * 1.5)
-    const { canvas, pixelRatio = defaultPR, fxaa = true, bloom = true, transparent = false } = config
+    const {
+      canvas,
+      pixelRatio = defaultPR,
+      fxaa = true,
+      bloom = true,
+      transparent = false,
+      preserveDrawingBuffer = false,
+    } = config
     this.scene = new THREE.Scene()
     this.camera = new THREE.PerspectiveCamera(
       60,
@@ -48,6 +60,7 @@ export class VisualEngine {
       antialias: true,
       alpha: transparent,
       powerPreference: 'high-performance',
+      preserveDrawingBuffer,
     })
     this.renderer.setPixelRatio(pixelRatio)
     // 不要让 three.js 覆盖 canvas 的 CSS 尺寸（会导致图层看起来“超出蓝框/不居中”）

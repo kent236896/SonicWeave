@@ -5,7 +5,7 @@
 import { useRef, useEffect, useMemo, useState, useCallback } from 'react'
 import { Rnd } from 'react-rnd'
 import * as THREE from 'three'
-import { AudioEngine } from '@/core/AudioEngine'
+import { AudioEngine, type FrequencyBands } from '@/core/AudioEngine'
 import { VisualEngine } from '@/core/VisualEngine'
 import { ParameterMappingEngine } from '@/core/ParameterMappingEngine'
 import { EffectManager } from '@/core/EffectManager'
@@ -20,11 +20,26 @@ import { useEditor } from '@/state/EditorState'
 import type { VisualLayer, CanvasConfig } from '@/state/EditorState'
 import type { IEffect } from '@/effects/types'
 
+export interface EditorCanvasExportApi {
+  beginExport: (p: { width: number; height: number; pixelRatio?: number }) => () => void
+  renderExportFrame: (p: {
+    width: number
+    height: number
+    virtualWidth: number
+    virtualHeight: number
+    bands: FrequencyBands
+    frequencyData: Uint8Array
+    dt: number
+  }) => void
+  getCanvas: () => HTMLCanvasElement
+}
+
 interface EditorCanvasProps {
   audioFile: File | null
   isPlaying: boolean
   onProgressUpdate: (progress: number, duration: number) => void
   onSeekRef: React.MutableRefObject<(t: number) => void>
+  onExportRef: React.MutableRefObject<EditorCanvasExportApi | null>
   activeImageUrl: string | null
   backgroundVideoUrl: string | null
   backgroundVideoFit: 'cover' | 'contain'
@@ -47,6 +62,7 @@ export function EditorCanvas({
   isPlaying,
   onProgressUpdate,
   onSeekRef,
+  onExportRef,
   activeImageUrl,
   backgroundVideoUrl,
   backgroundVideoFit,
@@ -76,6 +92,8 @@ export function EditorCanvas({
     visual: VisualEngine
     canvas: HTMLCanvasElement
   } | null>(null)
+  const rafIdRef = useRef<number | null>(null)
+  const runningRef = useRef(true)
 
   type LayerEngine = {
     scene: THREE.Scene
@@ -180,6 +198,8 @@ export function EditorCanvas({
       transparent: true,
       bloom: false,
       fxaa: false,
+      // 导出时需要从 WebGL canvas 读回（drawImage/toBlob），不保留缓冲会导致“多数帧空白/偶尔闪现”
+      preserveDrawingBuffer: true,
       pixelRatio: Math.min(1.5, window.devicePixelRatio || 1),
     })
     visualEngine.renderer.autoClear = false
@@ -194,15 +214,23 @@ export function EditorCanvas({
     let rafId: number
     let lastVideoSyncMs = 0
 
-    const tick = () => {
+    const renderOnce = (p: {
+      stageW: number
+      stageH: number
+      vstageW: number
+      vstageH: number
+      bands: FrequencyBands
+      frequencyData: Uint8Array
+      dt: number
+    }) => {
       const engines = enginesRef.current
       if (!engines) return
 
-      const { audio, mapping, visual } = engines
+      const { mapping, visual } = engines
       const am = audioMappingRef.current
-      const stagePx = stageSizeRef.current
       const layersToRender = visibleLayersRef.current
-      const vstage = virtualStageRef.current
+      const stageW = p.stageW
+      const stageH = p.stageH
 
       mapping.setConfig({
         lowScale: am.sensitivity,
@@ -211,40 +239,18 @@ export function EditorCanvas({
         minFloor: am.min,
         maxCeiling: am.max,
       })
-      audio.setSmoothingFactor(am.smoothing)
 
-      const bands = audio.getFrequencyBands()
-      const mapped = mapping.map(bands)
-      const freq = audio.getFrequencyData()
-      const baseMapped = am.enabled
-        ? mapped
-        : { low: 0.3, mid: 0.3, high: 0.3, energy: 0.3 }
-
-      // 背景视频与音频时间轴同步：
-      // - 仅在播放时做低频校正，暂停时不动，避免跳帧
-      const v = bgVideoRef.current
-      if (v && backgroundVideoUrl && isPlaying) {
-        const now = performance.now()
-        if (now - lastVideoSyncMs > 250) {
-          syncVideoToAudio(audio.currentTime, false)
-          lastVideoSyncMs = now
-        }
-      }
+      const mapped = mapping.map(p.bands)
+      const baseMapped = am.enabled ? mapped : { low: 0.3, mid: 0.3, high: 0.3, energy: 0.3 }
 
       const renderer = visual.renderer
       const camera = visual.camera
-      // Three.js 的 setViewport / setScissor 接收 CSS 像素，内部会自动乘以 pixelRatio。
-      // 不要自己乘 pr，否则 Three.js 会再乘一次（pr² 倍），导致视口超出画布、内容偏移到右上角。
-      const stageW = stagePx.w
-      const stageH = stagePx.h
 
-      // 清屏为透明，让棋盘格/底图能透出
       renderer.setScissorTest(false)
       renderer.setViewport(0, 0, stageW, stageH)
       renderer.setClearColor(0x000000, 0)
       renderer.clear(true, true, true)
 
-      // 按层渲染到不同 viewport/scissor：单一 WebGL 上下文，不会因多层崩溃
       const layerEngines = layerEnginesRef.current
       for (let idx = 0; idx < layersToRender.length; idx++) {
         const layer = layersToRender[idx]
@@ -258,7 +264,6 @@ export function EditorCanvas({
         const hPx = Math.max(1, rect.h * stageH)
         const y = stageH - yTop - hPx
 
-        // viewport 允许超出画布（负坐标/超大尺寸），用 scissor 做与舞台的交集裁剪
         const sx = Math.max(0, x)
         const sy = Math.max(0, y)
         const sw = Math.min(stageW, x + wPx) - sx
@@ -270,40 +275,124 @@ export function EditorCanvas({
         renderer.setScissor(sx, sy, sw, sh)
         renderer.clearDepth()
 
-        // 相机按图层 viewport 的宽高比更新，避免形变/偏移
         camera.aspect = wPx / hPx
-        // 图层内容旋转（不改变图层框）
         const vr = (layer.params as any)?.viewRotation
         const rot = typeof vr === 'number' ? vr : 0
         camera.rotation.set(0, 0, rot)
         camera.updateProjectionMatrix()
         camera.updateMatrixWorld()
 
-        // 传入“用户可视化尺寸”对应的分辨率给效果做 aspect/能量映射
-        const vw = Math.max(1, vstage.w * rect.w)
-        const vh = Math.max(1, vstage.h * rect.h)
+        const vw = Math.max(1, p.vstageW * rect.w)
+        const vh = Math.max(1, p.vstageH * rect.h)
         const audioData = {
           mapped: baseMapped,
-          frequencyData: freq,
-          binCount: audio.frequencyBinCount,
+          frequencyData: p.frequencyData,
+          binCount: p.frequencyData.length,
           resolution: { width: vw, height: vh },
         }
-        le.effectManager.update(audioData, 1 / 60)
+        le.effectManager.update(audioData, p.dt)
         renderer.render(le.scene, camera)
       }
 
       renderer.setScissorTest(false)
-      // 恢复相机旋转，避免影响后续帧/图层
       camera.rotation.set(0, 0, 0)
       camera.updateMatrixWorld()
+    }
+
+    const tick = () => {
+      const engines = enginesRef.current
+      if (!engines) return
+      if (!runningRef.current) return
+
+      const { audio } = engines
+      const am = audioMappingRef.current
+      const stagePx = stageSizeRef.current
+      const vstage = virtualStageRef.current
+      audio.setSmoothingFactor(am.smoothing)
+
+      const bands = audio.getFrequencyBands()
+      const freq = audio.getFrequencyData()
+      renderOnce({
+        stageW: stagePx.w,
+        stageH: stagePx.h,
+        vstageW: vstage.w,
+        vstageH: vstage.h,
+        bands,
+        frequencyData: freq,
+        dt: 1 / 60,
+      })
+
+      // 背景视频与音频时间轴同步：
+      // - 仅在播放时做低频校正，暂停时不动，避免跳帧
+      const v = bgVideoRef.current
+      if (v && backgroundVideoUrl && isPlaying) {
+        const now = performance.now()
+        if (now - lastVideoSyncMs > 250) {
+          syncVideoToAudio(audio.currentTime, false)
+          lastVideoSyncMs = now
+        }
+      }
 
       rafId = requestAnimationFrame(tick)
+      rafIdRef.current = rafId
     }
 
     rafId = requestAnimationFrame(tick)
+    rafIdRef.current = rafId
+
+    onExportRef.current = {
+      beginExport: ({ width, height, pixelRatio }) => {
+        const engines = enginesRef.current
+        if (!engines) return () => {}
+        const { canvas, visual } = engines
+
+        const prevRunning = runningRef.current
+        runningRef.current = false
+        if (rafIdRef.current != null) cancelAnimationFrame(rafIdRef.current)
+
+        const prev = {
+          w: canvas.width,
+          h: canvas.height,
+          pr: visual.renderer.getPixelRatio(),
+        }
+
+        const pr = typeof pixelRatio === 'number' && Number.isFinite(pixelRatio) ? pixelRatio : prev.pr
+        visual.renderer.setPixelRatio(pr)
+        canvas.width = Math.max(1, Math.floor(width))
+        canvas.height = Math.max(1, Math.floor(height))
+        visual.resize(canvas.width, canvas.height)
+
+        return () => {
+          try {
+            visual.renderer.setPixelRatio(prev.pr)
+            canvas.width = prev.w
+            canvas.height = prev.h
+            visual.resize(prev.w, prev.h)
+          } finally {
+            runningRef.current = prevRunning
+            if (prevRunning) {
+              rafIdRef.current = requestAnimationFrame(tick)
+            }
+          }
+        }
+      },
+      renderExportFrame: ({ width, height, virtualWidth, virtualHeight, bands, frequencyData, dt }) => {
+        renderOnce({
+          stageW: width,
+          stageH: height,
+          vstageW: virtualWidth,
+          vstageH: virtualHeight,
+          bands,
+          frequencyData,
+          dt,
+        })
+      },
+      getCanvas: () => enginesRef.current?.canvas ?? canvas,
+    }
 
     return () => {
       cancelAnimationFrame(rafId)
+      if (onExportRef.current) onExportRef.current = null
       // dispose layers
       for (const [, le] of layerEnginesRef.current) {
         le.effectManager.dispose()

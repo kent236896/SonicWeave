@@ -9,13 +9,15 @@ interface TopBarProps {
   onImportAudio: (file: File) => void
   onImportImage: (file: File) => void
   onImportBackgroundVideo: (file: File) => void
+  onExport: () => void
 }
 
-export function TopBar({ onImportAudio, onImportImage, onImportBackgroundVideo }: TopBarProps) {
+export function TopBar({ onImportAudio, onImportImage, onImportBackgroundVideo, onExport }: TopBarProps) {
   const { setAudioFile, setPlaying, setBackgroundVideo, setCanvasConfig } = useEditor()
   const audioInputRef = useRef<HTMLInputElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
+  const canExport = typeof window !== 'undefined' && !!window.electronAPI?.export
 
   const handleAudioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -75,11 +77,6 @@ export function TopBar({ onImportAudio, onImportImage, onImportBackgroundVideo }
     e.target.value = ''
   }
 
-  const handleExport = () => {
-    // Placeholder - no timeline/export yet
-    console.log('Export (placeholder)')
-  }
-
   return (
     <header className="top-bar">
       <span className="top-bar-title">SonicWeave</span>
@@ -122,7 +119,12 @@ export function TopBar({ onImportAudio, onImportImage, onImportBackgroundVideo }
       >
         Background Video
       </button>
-      <button className="top-bar-btn" onClick={handleExport}>
+      <button
+        className={`top-bar-btn ${canExport ? '' : 'sw-btn-disabled'}`}
+        onClick={onExport}
+        aria-disabled={!canExport}
+        title={!canExport ? '请在桌面应用（Electron 窗口）中导出' : '导出视频'}
+      >
         Export
       </button>
     </header>
