@@ -6,6 +6,7 @@ import { useRef, useEffect, useMemo, useState, useCallback } from 'react'
 import { Rnd } from 'react-rnd'
 import * as THREE from 'three'
 import { AudioEngine, type FrequencyBands } from '@/core/AudioEngine'
+import { AudioFeatureEngine } from '@/core/AudioFeatureEngine'
 import { VisualEngine } from '@/core/VisualEngine'
 import { ParameterMappingEngine } from '@/core/ParameterMappingEngine'
 import { EffectManager } from '@/core/EffectManager'
@@ -78,6 +79,7 @@ export function EditorCanvas({
   const containerRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const bgVideoRef = useRef<HTMLVideoElement>(null)
+  const audioFeatureRef = useRef(new AudioFeatureEngine())
   const [hostSize, setHostSize] = useState<{ w: number; h: number }>({ w: 800, h: 600 })
   const [stageSize, setStageSize] = useState<{ w: number; h: number }>({ w: 800, h: 600 })
   const stageSizeRef = useRef(stageSize)
@@ -228,6 +230,7 @@ export function EditorCanvas({
       bands: FrequencyBands
       frequencyData: Uint8Array
       dt: number
+      sampleRateHz?: number
     }) => {
       const engines = enginesRef.current
       if (!engines) return
@@ -290,10 +293,16 @@ export function EditorCanvas({
 
         const vw = Math.max(1, p.vstageW * rect.w)
         const vh = Math.max(1, p.vstageH * rect.h)
+        const features = audioFeatureRef.current.update({
+          frequencyData: p.frequencyData,
+          dt: p.dt,
+          sampleRateHz: p.sampleRateHz,
+        })
         const audioData = {
           mapped: baseMapped,
           frequencyData: p.frequencyData,
           binCount: p.frequencyData.length,
+          features,
           resolution: { width: vw, height: vh },
         }
         le.effectManager.update(audioData, p.dt)
@@ -326,6 +335,7 @@ export function EditorCanvas({
         bands,
         frequencyData: freq,
         dt: 1 / 60,
+        sampleRateHz: audio.sampleRate,
       })
 
       // 背景视频与音频时间轴同步：
@@ -383,6 +393,7 @@ export function EditorCanvas({
         }
       },
       renderExportFrame: ({ width, height, virtualWidth, virtualHeight, bands, frequencyData, dt }) => {
+        const sr = enginesRef.current?.audio.sampleRate ?? 44100
         renderOnce({
           stageW: width,
           stageH: height,
@@ -391,6 +402,7 @@ export function EditorCanvas({
           bands,
           frequencyData,
           dt,
+          sampleRateHz: sr,
         })
       },
       getCanvas: () => enginesRef.current?.canvas ?? canvas,

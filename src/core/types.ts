@@ -3,6 +3,7 @@
  */
 
 import type { FrequencyBands } from './AudioEngine'
+import type { AudioFeatures } from './AudioFeatureEngine'
 
 export interface MappedParams {
   low: number
@@ -15,6 +16,7 @@ export interface AudioData {
   mapped: MappedParams
   frequencyData: Uint8Array
   binCount: number
+  features?: AudioFeatures
   resolution?: { width: number; height: number }
 }
 

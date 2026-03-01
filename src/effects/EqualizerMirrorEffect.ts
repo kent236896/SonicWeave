@@ -137,7 +137,7 @@ export class EqualizerMirrorEffect implements IEffect {
     )
       return
 
-    const { frequencyData, binCount, mapped } = d
+    const { frequencyData, binCount, mapped, features } = d
     const n = this.barCount
     const step = binCount > 0 ? binCount / n : 1
 
@@ -189,17 +189,35 @@ export class EqualizerMirrorEffect implements IEffect {
     let minV = 1
     let maxV = 0
     const raw = new Float32Array(n)
-    for (let i = 0; i < n; i++) {
-      let s = 0
-      const st = Math.floor(i * step)
-      const en = Math.floor((i + 1) * step)
-      const range = en - st
-      if (range > 0) {
-        for (let j = st; j < en; j++) s += frequencyData[j] ?? 0
-        raw[i] = s / range / 255
-      } else raw[i] = 0
-      if (raw[i] < minV) minV = raw[i]
-      if (raw[i] > maxV) maxV = raw[i]
+    const spec = features?.spectrum
+    if (spec && spec.length > 0) {
+      const specN = spec.length
+      const sStep = specN / n
+      for (let i = 0; i < n; i++) {
+        let s = 0
+        const st = Math.floor(i * sStep)
+        const en = Math.floor((i + 1) * sStep)
+        const range = en - st
+        if (range > 0) {
+          for (let j = st; j < en; j++) s += spec[j] ?? 0
+          raw[i] = s / range
+        } else raw[i] = 0
+        if (raw[i] < minV) minV = raw[i]
+        if (raw[i] > maxV) maxV = raw[i]
+      }
+    } else {
+      for (let i = 0; i < n; i++) {
+        let s = 0
+        const st = Math.floor(i * step)
+        const en = Math.floor((i + 1) * step)
+        const range = en - st
+        if (range > 0) {
+          for (let j = st; j < en; j++) s += frequencyData[j] ?? 0
+          raw[i] = s / range / 255
+        } else raw[i] = 0
+        if (raw[i] < minV) minV = raw[i]
+        if (raw[i] > maxV) maxV = raw[i]
+      }
     }
     const span = Math.max(1e-6, maxV - minV)
 
@@ -213,7 +231,7 @@ export class EqualizerMirrorEffect implements IEffect {
 
     for (let i = 0; i < n; i++) {
       const norm = (raw[i] - minV) / span
-      const shaped = Math.pow(Math.min(1, norm), 0.75)
+      const shaped = Math.pow(Math.min(1, norm), 0.8)
       const target = shaped * (0.2 + mapped.energy * 1.2)
       const a = this.params.smoothing
       this.heights[i] += (target - this.heights[i]) * a

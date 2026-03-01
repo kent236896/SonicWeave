@@ -149,6 +149,10 @@ export class AudioEngine {
     if (this.analyser) this.analyser.smoothingTimeConstant = this.config.smoothingFactor
   }
 
+  get sampleRate(): number {
+    return this.audioContext?.sampleRate ?? this.config.sampleRate
+  }
+
   getFrequencyData(): Uint8Array {
     if (!this.frequencyData) return new Uint8Array(0)
     return new Uint8Array(this.frequencyData)

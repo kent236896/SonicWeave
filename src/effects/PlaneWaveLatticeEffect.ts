@@ -1,6 +1,6 @@
 /**
- * PlaneWaveLatticeEffect - 3D lattice points driven by plane wave.
- * Inspired by the classic "plane wave on a 3D lattice" visualization.
+ * PlaneWaveLatticeEffect - 3D lattice points driven by plane or spherical wave.
+ * Inspired by webgl_multiple_elements_text (plane / cylindrical / spherical waves).
  */
 
 import * as THREE from 'three'
@@ -16,21 +16,30 @@ uniform float uAmp;
 uniform float uSharpness;
 uniform float uPointSize;
 uniform float uOpacity;
+uniform float uWaveType; // 0 = plane, 1 = spherical
+uniform float uKSpherical; // k for spherical: u(r,t) = sin(kr ± ωt) / r
 
 varying float vA;
 
 void main(){
-  // plane wave: u(x,t) = sin(k·x - ωt)
-  float phase = dot(uK, position) - uOmega * uTime;
-  float u = sin(phase);
-  float a = pow(abs(u), uSharpness);
-  // energy increases contrast slightly
+  float a;
+  if (uWaveType < 0.5) {
+    // plane wave: u(x,t) = sin(k·x - ωt)
+    float phase = dot(uK, position) - uOmega * uTime;
+    float u = sin(phase);
+    a = pow(abs(u), uSharpness);
+  } else {
+    // spherical wave: u(r,t) = sin(kr ± ωt) / r
+    float r = length(position);
+    float phase = uKSpherical * r - uOmega * uTime;
+    float u = sin(phase) / max(0.15, r);
+    a = pow(abs(u), uSharpness);
+  }
   a *= (0.75 + uEnergy * 0.9);
   vA = clamp(a, 0.0, 1.0);
 
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   gl_Position = projectionMatrix * mv;
-  // perspective correct point size
   float dist = max(0.001, -mv.z);
   gl_PointSize = uPointSize * (1.0 / dist) * 300.0;
 }
@@ -58,12 +67,19 @@ void main(){
 }
 `
 
+export type WaveLatticeShape = 'circle' | 'square'
+export type WaveLatticeWaveType = 'plane' | 'spherical'
+
 interface PlaneWaveParams {
   color?: string
   opacity?: number
   pointSize?: number
   grid?: number
   spacing?: number
+  /** Shape: circle = sphere, square = full cube */
+  shape?: WaveLatticeShape
+  /** Wave type: plane or spherical (u=sin(kr±ωt)/r) */
+  waveType?: WaveLatticeWaveType
   k?: number
   theta?: number // 0..1 -> 0..2π
   phi?: number // 0..1 -> -π/2..π/2
@@ -89,11 +105,13 @@ export class PlaneWaveLatticeEffect implements IEffect {
   private t = 0
 
   private params: Required<PlaneWaveParams> = {
-    color: '#ff2b2b',
+    color: '#00ff00',
     opacity: 0.95,
     pointSize: 0.018,
     grid: 18,
     spacing: 0.22,
+    shape: 'circle',
+    waveType: 'spherical',
     k: 2.8,
     theta: 0.08,
     phi: 0.52,
@@ -140,6 +158,8 @@ export class PlaneWaveLatticeEffect implements IEffect {
     this.mat.uniforms.uOmega.value = clamp(omega, 0, 8)
     this.mat.uniforms.uPointSize.value = clamp(pointSize, 0.004, 0.06)
     this.mat.uniforms.uSharpness.value = clamp(sharpness, 1, 10)
+    this.mat.uniforms.uWaveType.value = this.params.waveType === 'spherical' ? 1 : 0
+    this.mat.uniforms.uKSpherical.value = kMag
 
     // gentle auto-rotation to match the "3D lattice" feel
     const rs = this.params.rotateSpeed * (0.35 + d.mapped.mid * 1.2) * (1 + energy * this.params.reactRotate)
@@ -151,12 +171,16 @@ export class PlaneWaveLatticeEffect implements IEffect {
     const x = p as PlaneWaveParams
     const prevGrid = this.params.grid
     const prevSpacing = this.params.spacing
+    const prevShape = this.params.shape
+    const prevWaveType = this.params.waveType
 
     if (typeof x.color === 'string') this.params.color = x.color
     if (typeof x.opacity === 'number') this.params.opacity = clamp(x.opacity, 0.05, 1)
     if (typeof x.pointSize === 'number') this.params.pointSize = clamp(x.pointSize, 0.004, 0.06)
     if (typeof x.grid === 'number') this.params.grid = Math.max(6, Math.min(40, Math.round(x.grid)))
     if (typeof x.spacing === 'number') this.params.spacing = clamp(x.spacing, 0.08, 0.55)
+    if (x.shape === 'circle' || x.shape === 'square') this.params.shape = x.shape
+    if (x.waveType === 'plane' || x.waveType === 'spherical') this.params.waveType = x.waveType
     if (typeof x.k === 'number') this.params.k = clamp(x.k, 0.2, 10)
     if (typeof x.theta === 'number') this.params.theta = clamp(x.theta, 0, 1)
     if (typeof x.phi === 'number') this.params.phi = clamp(x.phi, 0, 1)
@@ -170,7 +194,11 @@ export class PlaneWaveLatticeEffect implements IEffect {
     if (typeof x.reactK === 'number') this.params.reactK = clamp(x.reactK, 0, 2)
     if (typeof x.reactRotate === 'number') this.params.reactRotate = clamp(x.reactRotate, 0, 2)
 
-    const needRebuild = !!this.geo && (this.params.grid !== prevGrid || this.params.spacing !== prevSpacing)
+    const needRebuild =
+      !!this.geo &&
+      (this.params.grid !== prevGrid ||
+        this.params.spacing !== prevSpacing ||
+        this.params.shape !== prevShape)
     if (needRebuild) this.build()
     this.applyParams()
   }
@@ -195,20 +223,26 @@ export class PlaneWaveLatticeEffect implements IEffect {
     const n = this.params.grid
     const sp = this.params.spacing
     const half = (n - 1) * 0.5 * sp
-    const count = n * n * n
-    const pos = new Float32Array(count * 3)
+    const useCircle = this.params.shape === 'circle'
+    const radiusSq = half * half
 
-    let k = 0
+    const posList: number[] = []
     for (let z = 0; z < n; z++) {
       for (let y = 0; y < n; y++) {
         for (let x = 0; x < n; x++) {
-          pos[k++] = x * sp - half
-          pos[k++] = y * sp - half
-          pos[k++] = z * sp - half
+          const px = x * sp - half
+          const py = y * sp - half
+          const pz = z * sp - half
+          if (useCircle) {
+            const r2 = px * px + py * py + pz * pz
+            if (r2 > radiusSq) continue
+          }
+          posList.push(px, py, pz)
         }
       }
     }
 
+    const pos = new Float32Array(posList)
     const geo = new THREE.BufferGeometry()
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
     geo.computeBoundingSphere()
@@ -226,8 +260,10 @@ export class PlaneWaveLatticeEffect implements IEffect {
           uAmp: { value: this.params.amp },
           uSharpness: { value: this.params.sharpness },
           uPointSize: { value: this.params.pointSize },
-          uColor: { value: new THREE.Color(0xff2b2b) },
+          uColor: { value: new THREE.Color(0x00ff00) },
           uOpacity: { value: this.params.opacity },
+          uWaveType: { value: 1 },
+          uKSpherical: { value: this.params.k },
         },
         transparent: true,
         depthWrite: false,
@@ -253,7 +289,7 @@ export class PlaneWaveLatticeEffect implements IEffect {
     try {
       c.set(this.params.color)
     } catch {
-      c.set('#ff2b2b')
+      c.set('#00ff00')
     }
 
     const dir = this.computeDir()
@@ -264,6 +300,8 @@ export class PlaneWaveLatticeEffect implements IEffect {
     this.mat.uniforms.uPointSize.value = this.params.pointSize
     this.mat.uniforms.uColor.value.copy(c)
     this.mat.uniforms.uOpacity.value = this.params.opacity
+    this.mat.uniforms.uWaveType.value = this.params.waveType === 'spherical' ? 1 : 0
+    this.mat.uniforms.uKSpherical.value = this.params.k
   }
 
   private computeDir(): THREE.Vector3 {

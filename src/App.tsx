@@ -248,11 +248,13 @@ function EditorContent() {
         })
       } else if (id === 'planeWaveLattice') {
         addLayer('planeWaveLattice', {
-          color: '#ff2b2b',
+          color: '#00ff00',
           opacity: 0.95,
           pointSize: 0.018,
           grid: 18,
           spacing: 0.22,
+          shape: 'circle',
+          waveType: 'spherical',
           k: 2.8,
           theta: 0.08,
           phi: 0.52,

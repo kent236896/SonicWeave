@@ -233,7 +233,9 @@ function EffectParamsPanel({
 
   if (effectId === 'planeWaveLattice') {
     const color =
-      typeof params.color === 'string' && params.color ? (params.color as string) : '#ff2b2b'
+      typeof params.color === 'string' && params.color ? (params.color as string) : '#00ff00'
+    const shape = (params.shape as 'circle' | 'square') ?? 'circle'
+    const waveType = (params.waveType as 'plane' | 'spherical') ?? 'spherical'
     return (
       <>
         <div style={{ marginBottom: 10 }}>
@@ -261,6 +263,34 @@ function EffectParamsPanel({
           <div style={{ borderRadius: 10, overflow: 'hidden' }}>
             <HexColorPicker color={color} onChange={(v) => onChange('color', v)} />
           </div>
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ color: 'var(--text-dim)', fontSize: 11, display: 'block', marginBottom: 6 }}>
+            Shape
+          </label>
+          <select
+            value={shape}
+            onChange={(e) => onChange('shape', e.target.value as 'circle' | 'square')}
+            style={{ width: '100%', padding: 6, borderRadius: 6, background: 'var(--bg)', color: 'var(--text)' }}
+          >
+            <option value="circle">Circle (sphere)</option>
+            <option value="square">Square (cube)</option>
+          </select>
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ color: 'var(--text-dim)', fontSize: 11, display: 'block', marginBottom: 6 }}>
+            Wave Type
+          </label>
+          <select
+            value={waveType}
+            onChange={(e) => onChange('waveType', e.target.value as 'plane' | 'spherical')}
+            style={{ width: '100%', padding: 6, borderRadius: 6, background: 'var(--bg)', color: 'var(--text)' }}
+          >
+            <option value="plane">Plane wave</option>
+            <option value="spherical">Spherical wave</option>
+          </select>
         </div>
 
         <SliderRow

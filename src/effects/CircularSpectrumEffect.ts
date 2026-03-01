@@ -67,7 +67,19 @@ export class CircularSpectrumEffect implements IEffect {
 
   update(d: AudioData, _dt: number): void {
     if (!this.group) return
-    const { frequencyData, binCount, mapped } = d
+    const { frequencyData, binCount, mapped, features } = d
+
+    // Prefer shared, equalized log bands when available (more "full" coverage).
+    const fb = features?.bands
+    if (fb && fb.length > 0) {
+      const bn = fb.length
+      for (let i = 0; i < N; i++) {
+        const bi = Math.max(0, Math.min(bn - 1, Math.floor((i / N) * bn)))
+        const v = fb[bi] ?? 0
+        const t = Math.pow(Math.min(1, v), 0.9) * (0.35 + mapped.energy * 0.65)
+        this.heights[i] += (t - this.heights[i]) * 0.12
+      }
+    } else {
     const step = binCount > 0 ? binCount / N : 1
     const rawTargets = new Float32Array(N)
     for (let i = 0; i < N; i++) {
@@ -113,6 +125,7 @@ export class CircularSpectrumEffect implements IEffect {
       // 无变化时目标接近 0，条会自然回落
       const t = noVariation ? 0.05 : compressed * (0.4 + mapped.energy * 0.6)
       this.heights[i] += (t - this.heights[i]) * 0.1
+    }
     }
     const hue = 0.55 + mapped.high * 0.2
     this.material?.color.copy(new THREE.Color().setHSL(hue, 0.8, 0.6))
