@@ -310,6 +310,20 @@ function EditorContent() {
           maxIterations: 5,
           emissive: 1.0,
         })
+      } else if (id === 'css3dSprites') {
+        addLayer('css3dSprites', {
+          color: '#4488ff',
+          opacity: 0.95,
+          size: 0.12,
+          layout: 'plane',
+          transitionDuration: 2,
+          pulseSpeed: 0.002,
+          pulseAmount: 0.3,
+          reactScale: 1.2,
+          reactRotation: 0.8,
+          reactPulse: 1.0,
+          reactHue: 0.3,
+        })
       } else if (id === 'particles') {
         addLayer('particles', {
           baseSize: 0.04,

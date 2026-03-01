@@ -19,6 +19,7 @@ import { EnergyFieldEffect } from '@/effects/EnergyFieldEffect'
 import { PlaneWaveLatticeEffect } from '@/effects/PlaneWaveLatticeEffect'
 import { StormtrooperDanceEffect } from '@/effects/StormtrooperDanceEffect'
 import { TessellatedTextEffect } from '@/effects/TessellatedTextEffect'
+import { CSS3DSpritesEffect } from '@/effects/CSS3DSpritesEffect'
 import { useEditor } from '@/state/EditorState'
 import type { VisualLayer, CanvasConfig } from '@/state/EditorState'
 import type { IEffect } from '@/effects/types'
@@ -136,6 +137,8 @@ export function EditorCanvas({
         return new StormtrooperDanceEffect()
       case 'tessellatedText':
         return new TessellatedTextEffect()
+      case 'css3dSprites':
+        return new CSS3DSpritesEffect()
       default:
         throw new Error(`Unknown effect id: ${effectId}`)
     }

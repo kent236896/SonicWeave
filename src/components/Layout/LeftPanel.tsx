@@ -14,6 +14,7 @@ const EFFECT_LABELS: Record<EffectId, string> = {
   planeWaveLattice: 'Plane Wave Lattice',
   stormtrooperDance: 'Stormtrooper Dance',
   tessellatedText: 'Tessellated Text',
+  css3dSprites: '3D Sprites',
 }
 
 export function LeftPanel({
@@ -118,6 +119,7 @@ export function LeftPanel({
             'tessellatedText',
             'energyField',
             'planeWaveLattice',
+            'css3dSprites',
             'particles',
             'equalizer',
             'spectrum',

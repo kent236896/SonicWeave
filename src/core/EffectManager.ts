@@ -15,6 +15,7 @@ export type EffectId =
   | 'planeWaveLattice'
   | 'stormtrooperDance'
   | 'tessellatedText'
+  | 'css3dSprites'
 
 export class EffectManager {
   private effects: IEffect[] = []

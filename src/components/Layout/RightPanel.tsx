@@ -423,6 +423,114 @@ function EffectParamsPanel({
     )
   }
 
+  if (effectId === 'css3dSprites') {
+    const color =
+      typeof params.color === 'string' && params.color ? (params.color as string) : '#4488ff'
+    const layout = (params.layout as 'plane' | 'cube' | 'sphere' | 'random') ?? 'plane'
+    return (
+      <>
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <label style={{ color: 'var(--text-dim)', fontSize: 11 }}>Color</label>
+            <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>{color}</span>
+          </div>
+          <div style={{ borderRadius: 10, overflow: 'hidden' }}>
+            <HexColorPicker color={color} onChange={(v) => onChange('color', v)} />
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ color: 'var(--text-dim)', fontSize: 11, display: 'block', marginBottom: 6 }}>
+            Layout
+          </label>
+          <select
+            value={layout}
+            onChange={(e) => onChange('layout', e.target.value as 'plane' | 'cube' | 'sphere' | 'random')}
+            style={{ width: '100%', padding: 6, borderRadius: 6, background: 'var(--bg)', color: 'var(--text)' }}
+          >
+            <option value="plane">Plane</option>
+            <option value="cube">Cube</option>
+            <option value="sphere">Sphere</option>
+            <option value="random">Random</option>
+          </select>
+        </div>
+
+        <SliderRow
+          label="Opacity"
+          value={(params.opacity as number) ?? 0.95}
+          min={0.1}
+          max={1}
+          step={0.01}
+          onChange={(v) => onChange('opacity', v)}
+        />
+        <SliderRow
+          label="Size"
+          value={(params.size as number) ?? 0.12}
+          min={0.02}
+          max={0.5}
+          step={0.01}
+          onChange={(v) => onChange('size', v)}
+        />
+        <SliderRow
+          label="Transition Duration"
+          value={(params.transitionDuration as number) ?? 2}
+          min={0.5}
+          max={6}
+          step={0.1}
+          onChange={(v) => onChange('transitionDuration', v)}
+        />
+        <SliderRow
+          label="Pulse Speed"
+          value={(params.pulseSpeed as number) ?? 0.002}
+          min={0}
+          max={0.01}
+          step={0.0005}
+          onChange={(v) => onChange('pulseSpeed', v)}
+        />
+        <SliderRow
+          label="Pulse Amount"
+          value={(params.pulseAmount as number) ?? 0.3}
+          min={0}
+          max={1}
+          step={0.01}
+          onChange={(v) => onChange('pulseAmount', v)}
+        />
+        <SliderRow
+          label="Audio React Scale"
+          value={(params.reactScale as number) ?? 1.2}
+          min={0}
+          max={3}
+          step={0.01}
+          onChange={(v) => onChange('reactScale', v)}
+        />
+        <SliderRow
+          label="Audio React Rotation"
+          value={(params.reactRotation as number) ?? 0.8}
+          min={0}
+          max={2}
+          step={0.01}
+          onChange={(v) => onChange('reactRotation', v)}
+        />
+        <SliderRow
+          label="Beat Pulse"
+          value={(params.reactPulse as number) ?? 1.0}
+          min={0}
+          max={3}
+          step={0.01}
+          onChange={(v) => onChange('reactPulse', v)}
+        />
+        <SliderRow
+          label="Bass Hue Shift"
+          value={(params.reactHue as number) ?? 0.3}
+          min={0}
+          max={1}
+          step={0.01}
+          onChange={(v) => onChange('reactHue', v)}
+        />
+      </>
+    )
+  }
+
   if (effectId === 'particles') {
     const shape = (params.shape as number) ?? 0
     return (
