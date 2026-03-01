@@ -13,6 +13,8 @@ export type EffectId =
   | 'equalizer'
   | 'energyField'
   | 'planeWaveLattice'
+  | 'stormtrooperDance'
+  | 'tessellatedText'
 
 export class EffectManager {
   private effects: IEffect[] = []

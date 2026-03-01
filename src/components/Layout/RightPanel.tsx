@@ -754,6 +754,371 @@ function EffectParamsPanel({
     )
   }
 
+  if (effectId === 'stormtrooperDance') {
+    return (
+      <>
+        <SliderRow
+          label="Scale"
+          value={(params.scale as number) ?? 1}
+          min={0.2}
+          max={4}
+          step={0.05}
+          onChange={(v) => onChange('scale', v)}
+        />
+        <SliderRow
+          label="Yaw"
+          value={(params.yaw as number) ?? Math.PI}
+          min={-Math.PI}
+          max={Math.PI}
+          step={0.01}
+          onChange={(v) => onChange('yaw', v)}
+        />
+        <ToggleRow
+          label="Lock In Place"
+          checked={Boolean((params.lockInPlace as boolean) ?? true)}
+          onChange={(v) => onChange('lockInPlace', v)}
+        />
+        <ToggleRow
+          label="Force Alternating Arms"
+          checked={Boolean((params.forceAlternatingArms as boolean) ?? true)}
+          onChange={(v) => onChange('forceAlternatingArms', v)}
+        />
+        <SliderRow
+          label="Overlay"
+          value={(params.overlay as number) ?? 0.45}
+          min={0}
+          max={1.5}
+          step={0.05}
+          onChange={(v) => onChange('overlay', v)}
+        />
+        <SliderRow
+          label="Rhythm"
+          value={(params.rhythm as number) ?? 0.75}
+          min={0}
+          max={1.5}
+          step={0.05}
+          onChange={(v) => onChange('rhythm', v)}
+        />
+        <SliderRow
+          label="Beat Lock"
+          value={(params.beatLock as number) ?? 0.9}
+          min={0}
+          max={1.5}
+          step={0.05}
+          onChange={(v) => onChange('beatLock', v)}
+        />
+        <SliderRow
+          label="Smooth"
+          value={(params.smooth as number) ?? 0.25}
+          min={0}
+          max={0.95}
+          step={0.05}
+          onChange={(v) => onChange('smooth', v)}
+        />
+        <SliderRow
+          label="Root Bob"
+          value={(params.rootBob as number) ?? 0.12}
+          min={0}
+          max={0.6}
+          step={0.01}
+          onChange={(v) => onChange('rootBob', v)}
+        />
+        <SliderRow
+          label="Root Sway"
+          value={(params.rootSway as number) ?? 0.06}
+          min={0}
+          max={0.6}
+          step={0.01}
+          onChange={(v) => onChange('rootSway', v)}
+        />
+        <SliderRow
+          label="Dance Strength"
+          value={(params.danceStrength as number) ?? 1}
+          min={0}
+          max={3}
+          step={0.05}
+          onChange={(v) => onChange('danceStrength', v)}
+        />
+        <SliderRow
+          label="Base Anim Speed"
+          value={(params.baseAnimSpeed as number) ?? 0.9}
+          min={0}
+          max={3}
+          step={0.05}
+          onChange={(v) => onChange('baseAnimSpeed', v)}
+        />
+        <SliderRow
+          label="React Anim Speed"
+          value={(params.reactAnimSpeed as number) ?? 1.6}
+          min={0}
+          max={5}
+          step={0.05}
+          onChange={(v) => onChange('reactAnimSpeed', v)}
+        />
+        <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8 }}>
+            Lighting (Front)
+          </div>
+          <SliderRow
+            label="Key"
+            value={(params.keyLight as number) ?? 3.2}
+            min={0}
+            max={8}
+            step={0.1}
+            onChange={(v) => onChange('keyLight', v)}
+          />
+          <SliderRow
+            label="Fill"
+            value={(params.fillLight as number) ?? 1.2}
+            min={0}
+            max={8}
+            step={0.1}
+            onChange={(v) => onChange('fillLight', v)}
+          />
+          <SliderRow
+            label="Rim"
+            value={(params.rimLight as number) ?? 0.9}
+            min={0}
+            max={8}
+            step={0.1}
+            onChange={(v) => onChange('rimLight', v)}
+          />
+          <SliderRow
+            label="Ambient"
+            value={(params.ambient as number) ?? 0.35}
+            min={0}
+            max={2}
+            step={0.05}
+            onChange={(v) => onChange('ambient', v)}
+          />
+          <SliderRow
+            label="Hemisphere"
+            value={(params.hemisphere as number) ?? 0.9}
+            min={0}
+            max={3}
+            step={0.05}
+            onChange={(v) => onChange('hemisphere', v)}
+          />
+        </div>
+        <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8 }}>
+            Body Parts
+          </div>
+          <SliderRow
+            label="Bob (Low)"
+            value={(params.bob as number) ?? 0.22}
+            min={0}
+            max={1.5}
+            step={0.01}
+            onChange={(v) => onChange('bob', v)}
+          />
+          <SliderRow
+            label="Twist (Mid)"
+            value={(params.twist as number) ?? 0.35}
+            min={0}
+            max={1.5}
+            step={0.01}
+            onChange={(v) => onChange('twist', v)}
+          />
+          <SliderRow
+            label="Arms (Mid)"
+            value={(params.arms as number) ?? 0.75}
+            min={0}
+            max={2.5}
+            step={0.01}
+            onChange={(v) => onChange('arms', v)}
+          />
+          <SliderRow
+            label="Head (High)"
+            value={(params.head as number) ?? 0.35}
+            min={0}
+            max={2}
+            step={0.01}
+            onChange={(v) => onChange('head', v)}
+          />
+        </div>
+      </>
+    )
+  }
+
+  if (effectId === 'tessellatedText') {
+    const text = typeof params.text === 'string' ? (params.text as string) : 'SonicWeave'
+    const textColor = typeof params.textColor === 'string' ? (params.textColor as string) : '#ffffff'
+    const outlineColor =
+      typeof params.outlineColor === 'string' ? (params.outlineColor as string) : '#000000'
+    return (
+      <>
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <label style={{ color: 'var(--text-dim)', fontSize: 11 }}>Text</label>
+            <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>{text.length}/64</span>
+          </div>
+          <input
+            value={text}
+            onChange={(e) => onChange('text', e.target.value)}
+            spellCheck={false}
+            style={{ width: '100%' }}
+          />
+        </div>
+
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <label style={{ color: 'var(--text-dim)', fontSize: 11 }}>Text Color</label>
+            <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>{textColor}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+            <div
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 4,
+                background: textColor,
+                border: '1px solid var(--border)',
+              }}
+              title={textColor}
+            />
+            <input
+              value={textColor}
+              onChange={(e) => onChange('textColor', e.target.value)}
+              spellCheck={false}
+              style={{ width: '100%' }}
+            />
+          </div>
+          <div style={{ borderRadius: 10, overflow: 'hidden' }}>
+            <HexColorPicker color={textColor} onChange={(v) => onChange('textColor', v)} />
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <label style={{ color: 'var(--text-dim)', fontSize: 11 }}>Outline Color</label>
+            <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>{outlineColor}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+            <div
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 4,
+                background: outlineColor,
+                border: '1px solid var(--border)',
+              }}
+              title={outlineColor}
+            />
+            <input
+              value={outlineColor}
+              onChange={(e) => onChange('outlineColor', e.target.value)}
+              spellCheck={false}
+              style={{ width: '100%' }}
+            />
+          </div>
+          <div style={{ borderRadius: 10, overflow: 'hidden' }}>
+            <HexColorPicker color={outlineColor} onChange={(v) => onChange('outlineColor', v)} />
+          </div>
+        </div>
+
+        <SliderRow
+          label="Outline Width"
+          value={(params.outlineWidth as number) ?? 10}
+          min={0}
+          max={40}
+          step={1}
+          onChange={(v) => onChange('outlineWidth', v)}
+        />
+        <SliderRow
+          label="Font Size"
+          value={(params.fontScale as number) ?? 1}
+          min={0.2}
+          max={3}
+          step={0.05}
+          onChange={(v) => onChange('fontScale', v)}
+        />
+        <SliderRow
+          label="Padding"
+          value={(params.padding as number) ?? 48}
+          min={0}
+          max={200}
+          step={2}
+          onChange={(v) => onChange('padding', v)}
+        />
+
+        <ToggleRow
+          label="Background"
+          checked={Boolean(params.background)}
+          onChange={(v) => onChange('background', v)}
+        />
+        <SliderRow
+          label="BG Opacity"
+          value={(params.bgOpacity as number) ?? 0.25}
+          min={0}
+          max={1}
+          step={0.01}
+          onChange={(v) => onChange('bgOpacity', v)}
+        />
+
+        <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8 }}>
+            Tessellation
+          </div>
+          <SliderRow
+            label="Edge Length"
+            value={(params.edgeLength as number) ?? 0.28}
+            min={0.05}
+            max={1.2}
+            step={0.01}
+            onChange={(v) => onChange('edgeLength', v)}
+          />
+          <SliderRow
+            label="Iterations"
+            value={(params.maxIterations as number) ?? 5}
+            min={0}
+            max={8}
+            step={1}
+            onChange={(v) => onChange('maxIterations', v)}
+          />
+        </div>
+
+        <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8 }}>
+            Audio Reactive
+          </div>
+          <SliderRow
+            label="Amplitude"
+            value={(params.amplitude as number) ?? 0.35}
+            min={0}
+            max={2}
+            step={0.01}
+            onChange={(v) => onChange('amplitude', v)}
+          />
+          <SliderRow
+            label="Frequency"
+            value={(params.frequency as number) ?? 1.4}
+            min={0.1}
+            max={8}
+            step={0.05}
+            onChange={(v) => onChange('frequency', v)}
+          />
+          <SliderRow
+            label="Speed"
+            value={(params.speed as number) ?? 1.2}
+            min={0}
+            max={6}
+            step={0.05}
+            onChange={(v) => onChange('speed', v)}
+          />
+          <SliderRow
+            label="Emissive"
+            value={(params.emissive as number) ?? 1}
+            min={0}
+            max={4}
+            step={0.05}
+            onChange={(v) => onChange('emissive', v)}
+          />
+        </div>
+      </>
+    )
+  }
+
   return (
     <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>
       No parameters for this effect

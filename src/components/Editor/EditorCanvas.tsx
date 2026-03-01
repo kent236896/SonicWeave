@@ -16,6 +16,8 @@ import { CircularSpectrumEffect } from '@/effects/CircularSpectrumEffect'
 import { EqualizerMirrorEffect } from '@/effects/EqualizerMirrorEffect'
 import { EnergyFieldEffect } from '@/effects/EnergyFieldEffect'
 import { PlaneWaveLatticeEffect } from '@/effects/PlaneWaveLatticeEffect'
+import { StormtrooperDanceEffect } from '@/effects/StormtrooperDanceEffect'
+import { TessellatedTextEffect } from '@/effects/TessellatedTextEffect'
 import { useEditor } from '@/state/EditorState'
 import type { VisualLayer, CanvasConfig } from '@/state/EditorState'
 import type { IEffect } from '@/effects/types'
@@ -128,6 +130,10 @@ export function EditorCanvas({
         return new EnergyFieldEffect()
       case 'planeWaveLattice':
         return new PlaneWaveLatticeEffect()
+      case 'stormtrooperDance':
+        return new StormtrooperDanceEffect()
+      case 'tessellatedText':
+        return new TessellatedTextEffect()
       default:
         throw new Error(`Unknown effect id: ${effectId}`)
     }

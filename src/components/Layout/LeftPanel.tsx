@@ -12,6 +12,8 @@ const EFFECT_LABELS: Record<EffectId, string> = {
   equalizer: 'Equalizer Mirror',
   energyField: 'Energy Field',
   planeWaveLattice: 'Plane Wave Lattice',
+  stormtrooperDance: 'Stormtrooper Dance',
+  tessellatedText: 'Tessellated Text',
 }
 
 export function LeftPanel({
@@ -113,6 +115,7 @@ export function LeftPanel({
         <div className="panel-section-title">Effects Library</div>
         {(
           [
+            'tessellatedText',
             'energyField',
             'planeWaveLattice',
             'particles',

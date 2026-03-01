@@ -266,6 +266,48 @@ function EditorContent() {
           reactK: 0.35,
           reactRotate: 0.65,
         })
+      } else if (id === 'stormtrooperDance') {
+        addLayer('stormtrooperDance', {
+          scale: 1.0,
+          yaw: Math.PI,
+          danceStrength: 1.0,
+          baseAnimSpeed: 0.9,
+          reactAnimSpeed: 1.6,
+          bob: 0.22,
+          twist: 0.35,
+          arms: 0.75,
+          head: 0.35,
+          keyLight: 3.6,
+          fillLight: 2.2,
+          rimLight: 1.1,
+          ambient: 0.75,
+          hemisphere: 0.9,
+          lockInPlace: true,
+          overlay: 0.45,
+          rhythm: 0.75,
+          beatLock: 0.9,
+          smooth: 0.25,
+          rootBob: 0.12,
+          rootSway: 0.06,
+          forceAlternatingArms: true,
+        })
+      } else if (id === 'tessellatedText') {
+        addLayer('tessellatedText', {
+          text: 'SonicWeave',
+          textColor: '#ffffff',
+          outlineColor: '#000000',
+          outlineWidth: 10,
+          fontScale: 1.0,
+          padding: 48,
+          background: false,
+          bgOpacity: 0.25,
+          amplitude: 0.35,
+          frequency: 1.4,
+          speed: 1.2,
+          edgeLength: 0.28,
+          maxIterations: 5,
+          emissive: 1.0,
+        })
       } else if (id === 'particles') {
         addLayer('particles', {
           baseSize: 0.04,
