@@ -358,6 +358,7 @@ function EditorContent() {
         })
       } else if (id === 'spectrum') {
         addLayer('spectrum', {
+          color: '#00aaff',
           tilt: 0,
           style: 0,
           radius: 0.7,
@@ -369,6 +370,39 @@ function EditorContent() {
         addLayer('tunnel', {
           imageEnabled: false,
           imageMix: 0.6,
+        })
+      } else if (id === 'ocean') {
+        addLayer('ocean', {
+          boxColor: '#a0b8d0',
+          boxSize: 0.4,
+          reactBox: 1.2,
+        })
+      } else if (id === 'bloomSpheres') {
+        addLayer('bloomSpheres', {
+          randomSeed: Date.now(),
+          gridSize: 5,
+          sphereSize: 0.12,
+          bloomStrength: 1.2,
+          bloomRadius: 0.4,
+          bloomThreshold: 0.3,
+          reactSensitivity: 1.5,
+        })
+      } else if (id === 'drawRange') {
+        addLayer('drawRange', {
+          color: '#4488ff',
+          lineColor: '#66aaff',
+          lineBrightness: 1,
+          particleCount: 120,
+          minDistance: 0.4,
+          maxConnections: 15,
+          limitConnections: true,
+          showDots: true,
+          showLines: true,
+          pointSize: 0.018,
+          reactCount: 2,
+          reactDistance: 1.5,
+          reactSpeed: 2,
+          reactRotation: 1.5,
         })
       } else {
         addLayer(id)

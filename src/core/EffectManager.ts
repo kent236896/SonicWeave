@@ -16,6 +16,9 @@ export type EffectId =
   | 'stormtrooperDance'
   | 'tessellatedText'
   | 'css3dSprites'
+  | 'ocean'
+  | 'drawRange'
+  | 'bloomSpheres'
 
 export class EffectManager {
   private effects: IEffect[] = []

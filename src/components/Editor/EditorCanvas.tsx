@@ -20,6 +20,9 @@ import { PlaneWaveLatticeEffect } from '@/effects/PlaneWaveLatticeEffect'
 import { StormtrooperDanceEffect } from '@/effects/StormtrooperDanceEffect'
 import { TessellatedTextEffect } from '@/effects/TessellatedTextEffect'
 import { CSS3DSpritesEffect } from '@/effects/CSS3DSpritesEffect'
+import { OceanEffect } from '@/effects/OceanEffect'
+import { DrawRangeEffect } from '@/effects/DrawRangeEffect'
+import { BloomSpheresEffect } from '@/effects/BloomSpheresEffect'
 import { useEditor } from '@/state/EditorState'
 import type { VisualLayer, CanvasConfig } from '@/state/EditorState'
 import type { IEffect } from '@/effects/types'
@@ -139,6 +142,12 @@ export function EditorCanvas({
         return new TessellatedTextEffect()
       case 'css3dSprites':
         return new CSS3DSpritesEffect()
+      case 'ocean':
+        return new OceanEffect()
+      case 'drawRange':
+        return new DrawRangeEffect()
+      case 'bloomSpheres':
+        return new BloomSpheresEffect()
       default:
         throw new Error(`Unknown effect id: ${effectId}`)
     }
@@ -309,7 +318,11 @@ export function EditorCanvas({
           resolution: { width: vw, height: vh },
         }
         le.effectManager.update(audioData, p.dt)
-        renderer.render(le.scene, camera)
+        if (typeof le.effect.renderCustom === 'function') {
+          le.effect.renderCustom(renderer, camera, Math.round(wPx), Math.round(hPx))
+        } else {
+          renderer.render(le.scene, camera)
+        }
       }
 
       renderer.setScissorTest(false)

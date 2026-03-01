@@ -10,6 +10,7 @@ const N = 128
 const BASE_HEIGHT = 0.08
 
 interface SpectrumParams {
+  color?: string
   tilt?: number // 0 = 正圆, 1 = 近似横线
   style?: number // 0 = 柱状, 1 = Ferrofluid 风格
   radius?: number // 圆环缩放
@@ -28,6 +29,7 @@ export class CircularSpectrumEffect implements IEffect {
   // 按条记录长期平均能量，用于“均衡”不同频段的活跃度
   private bandMeans = new Float32Array(N)
   private params: Required<SpectrumParams> = {
+    color: '#00aaff',
     tilt: 0,
     style: 0,
     radius: 0.7,
@@ -43,7 +45,7 @@ export class CircularSpectrumEffect implements IEffect {
     this.group = new THREE.Group()
     this.group.renderOrder = 10
     this.material = new THREE.MeshBasicMaterial({
-      color: 0x00aaff,
+      color: this.params.color,
       transparent: true,
       opacity: 1,
       depthTest: true,
@@ -127,8 +129,7 @@ export class CircularSpectrumEffect implements IEffect {
       this.heights[i] += (t - this.heights[i]) * 0.1
     }
     }
-    const hue = 0.55 + mapped.high * 0.2
-    this.material?.color.copy(new THREE.Color().setHSL(hue, 0.8, 0.6))
+    this.material?.color.set(this.params.color)
     const sc = 0.9 + mapped.low * 0.8
     const energyFactor = 0.8 + mapped.energy * 3
     const heightScale = this.params.heightScale
@@ -213,6 +214,10 @@ export class CircularSpectrumEffect implements IEffect {
 
   setParams(p: Record<string, unknown>): void {
     const x = p as SpectrumParams
+    if (typeof x.color === 'string') {
+      this.params.color = x.color
+      this.material?.color.set(x.color)
+    }
     if (typeof x.tilt === 'number') {
       this.params.tilt = Math.max(0, Math.min(1, x.tilt))
     }

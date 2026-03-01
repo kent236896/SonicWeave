@@ -15,6 +15,9 @@ const EFFECT_LABELS: Record<EffectId, string> = {
   stormtrooperDance: 'Stormtrooper Dance',
   tessellatedText: 'Tessellated Text',
   css3dSprites: '3D Sprites',
+  ocean: '律动立方体',
+  drawRange: '粒子网络',
+  bloomSpheres: 'Bloom 小球',
 }
 
 export function LeftPanel({
@@ -116,6 +119,9 @@ export function LeftPanel({
         <div className="panel-section-title">Effects Library</div>
         {(
           [
+            'bloomSpheres',
+            'drawRange',
+            'ocean',
             'tessellatedText',
             'energyField',
             'planeWaveLattice',

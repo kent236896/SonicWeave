@@ -772,8 +772,36 @@ function EffectParamsPanel({
   }
 
   if (effectId === 'spectrum') {
+    const color =
+      typeof params.color === 'string' && params.color ? (params.color as string) : '#00aaff'
     return (
       <>
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <label style={{ color: 'var(--text-dim)', fontSize: 11 }}>颜色</label>
+            <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>{color}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+            <div
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 4,
+                background: color,
+                border: '1px solid var(--border)',
+              }}
+            />
+            <input
+              value={color}
+              onChange={(e) => onChange('color', e.target.value)}
+              spellCheck={false}
+              style={{ width: '100%' }}
+            />
+          </div>
+          <div style={{ borderRadius: 10, overflow: 'hidden' }}>
+            <HexColorPicker color={color} onChange={(v) => onChange('color', v)} />
+          </div>
+        </div>
         <div className="select-row">
           <label>Style</label>
           <select
@@ -830,6 +858,318 @@ function EffectParamsPanel({
         step={0.05}
         onChange={(v) => onChange('barWidth', v)}
       />
+      </>
+    )
+  }
+
+  if (effectId === 'bloomSpheres') {
+    const bgImgUrl = typeof params.imageUrl === 'string' ? params.imageUrl : ''
+    return (
+      <>
+        <div style={{ marginBottom: 10, fontSize: 11, color: 'var(--text-dim)' }}>
+          背景图片
+        </div>
+        <div className="select-row" style={{ gap: 8, marginBottom: 10 }}>
+          <button
+            className="top-bar-btn"
+            style={{ flex: 1 }}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            选择图片
+          </button>
+          <button
+            className="top-bar-btn"
+            disabled={!bgImgUrl}
+            onClick={() => onChange('imageUrl', '')}
+          >
+            清除
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              e.currentTarget.value = ''
+              if (!f) return
+              onChange('imageUrl', URL.createObjectURL(f))
+            }}
+          />
+        </div>
+        {bgImgUrl ? (
+          <>
+            <div style={{ color: 'var(--text-dim)', fontSize: 11, marginBottom: 6 }}>
+              已设置背景图片
+            </div>
+            <SliderRow
+              label="背景亮度"
+              value={(params.backgroundBrightness as number) ?? 0.6}
+              min={0.2}
+              max={1}
+              step={0.05}
+              onChange={(v) => onChange('backgroundBrightness', v)}
+            />
+          </>
+        ) : null}
+        <div style={{ marginBottom: 10 }}>
+          <button
+            className="top-bar-btn"
+            style={{ width: '100%' }}
+            onClick={() => onChange('randomSeed', Date.now())}
+          >
+            重新随机排列与颜色
+          </button>
+        </div>
+        <SliderRow
+          label="网格大小"
+          value={(params.gridSize as number) ?? 5}
+          min={2}
+          max={8}
+          step={1}
+          onChange={(v) => onChange('gridSize', v)}
+        />
+        <SliderRow
+          label="小球大小"
+          value={(params.sphereSize as number) ?? 0.12}
+          min={0.05}
+          max={0.3}
+          step={0.01}
+          onChange={(v) => onChange('sphereSize', v)}
+        />
+        <SliderRow
+          label="Bloom 强度"
+          value={(params.bloomStrength as number) ?? 1.2}
+          min={0.2}
+          max={3}
+          step={0.1}
+          onChange={(v) => onChange('bloomStrength', v)}
+        />
+        <SliderRow
+          label="Bloom 半径"
+          value={(params.bloomRadius as number) ?? 0.4}
+          min={0.1}
+          max={1}
+          step={0.05}
+          onChange={(v) => onChange('bloomRadius', v)}
+        />
+        <SliderRow
+          label="Bloom 阈值"
+          value={(params.bloomThreshold as number) ?? 0.3}
+          min={0}
+          max={1}
+          step={0.05}
+          onChange={(v) => onChange('bloomThreshold', v)}
+        />
+        <SliderRow
+          label="律动灵敏度"
+          value={(params.reactSensitivity as number) ?? 1.5}
+          min={0.2}
+          max={4}
+          step={0.1}
+          onChange={(v) => onChange('reactSensitivity', v)}
+        />
+      </>
+    )
+  }
+
+  if (effectId === 'drawRange') {
+    const color =
+      typeof params.color === 'string' && params.color ? (params.color as string) : '#4488ff'
+    const lineColor =
+      typeof params.lineColor === 'string' && params.lineColor ? (params.lineColor as string) : '#66aaff'
+    return (
+      <>
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <label style={{ color: 'var(--text-dim)', fontSize: 11 }}>粒子颜色</label>
+            <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>{color}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+            <div
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 4,
+                background: color,
+                border: '1px solid var(--border)',
+              }}
+            />
+            <input
+              value={color}
+              onChange={(e) => onChange('color', e.target.value)}
+              spellCheck={false}
+              style={{ width: '100%' }}
+            />
+          </div>
+          <div style={{ borderRadius: 10, overflow: 'hidden' }}>
+            <HexColorPicker color={color} onChange={(v) => onChange('color', v)} />
+          </div>
+        </div>
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <label style={{ color: 'var(--text-dim)', fontSize: 11 }}>连线颜色</label>
+            <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>{lineColor}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+            <div
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 4,
+                background: lineColor,
+                border: '1px solid var(--border)',
+              }}
+            />
+            <input
+              value={lineColor}
+              onChange={(e) => onChange('lineColor', e.target.value)}
+              spellCheck={false}
+              style={{ width: '100%' }}
+            />
+          </div>
+          <div style={{ borderRadius: 10, overflow: 'hidden' }}>
+            <HexColorPicker color={lineColor} onChange={(v) => onChange('lineColor', v)} />
+          </div>
+        </div>
+        <SliderRow
+          label="连线亮度"
+          value={(params.lineBrightness as number) ?? 1}
+          min={0.3}
+          max={2}
+          step={0.1}
+          onChange={(v) => onChange('lineBrightness', v)}
+        />
+        <SliderRow
+          label="粒子数量"
+          value={(params.particleCount as number) ?? 120}
+          min={20}
+          max={300}
+          step={10}
+          onChange={(v) => onChange('particleCount', v)}
+        />
+        <SliderRow
+          label="连线距离"
+          value={(params.minDistance as number) ?? 0.4}
+          min={0.1}
+          max={1.2}
+          step={0.05}
+          onChange={(v) => onChange('minDistance', v)}
+        />
+        <SliderRow
+          label="最大连线数"
+          value={(params.maxConnections as number) ?? 15}
+          min={0}
+          max={30}
+          step={1}
+          onChange={(v) => onChange('maxConnections', v)}
+        />
+        <SliderRow
+          label="粒子大小"
+          value={(params.pointSize as number) ?? 0.018}
+          min={0.005}
+          max={0.06}
+          step={0.002}
+          onChange={(v) => onChange('pointSize', v)}
+        />
+        <ToggleRow
+          label="限制连线数"
+          checked={Boolean((params.limitConnections as boolean) ?? true)}
+          onChange={(v) => onChange('limitConnections', v)}
+        />
+        <ToggleRow
+          label="显示粒子"
+          checked={Boolean((params.showDots as boolean) ?? true)}
+          onChange={(v) => onChange('showDots', v)}
+        />
+        <ToggleRow
+          label="显示连线"
+          checked={Boolean((params.showLines as boolean) ?? true)}
+          onChange={(v) => onChange('showLines', v)}
+        />
+        <SliderRow
+          label="律动-数量"
+          value={(params.reactCount as number) ?? 2}
+          min={0}
+          max={3}
+          step={0.05}
+          onChange={(v) => onChange('reactCount', v)}
+        />
+        <SliderRow
+          label="律动-距离"
+          value={(params.reactDistance as number) ?? 1.5}
+          min={0}
+          max={3}
+          step={0.05}
+          onChange={(v) => onChange('reactDistance', v)}
+        />
+        <SliderRow
+          label="律动-速度"
+          value={(params.reactSpeed as number) ?? 2}
+          min={0}
+          max={4}
+          step={0.1}
+          onChange={(v) => onChange('reactSpeed', v)}
+        />
+        <SliderRow
+          label="律动-旋转"
+          value={(params.reactRotation as number) ?? 1.5}
+          min={0}
+          max={3}
+          step={0.05}
+          onChange={(v) => onChange('reactRotation', v)}
+        />
+      </>
+    )
+  }
+
+  if (effectId === 'ocean') {
+    const boxColor =
+      typeof params.boxColor === 'string' && params.boxColor ? (params.boxColor as string) : '#a0b8d0'
+    return (
+      <>
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <label style={{ color: 'var(--text-dim)', fontSize: 11 }}>立方体颜色</label>
+            <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>{boxColor}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+            <div
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 4,
+                background: boxColor,
+                border: '1px solid var(--border)',
+              }}
+            />
+            <input
+              value={boxColor}
+              onChange={(e) => onChange('boxColor', e.target.value)}
+              spellCheck={false}
+              style={{ width: '100%' }}
+            />
+          </div>
+          <div style={{ borderRadius: 10, overflow: 'hidden' }}>
+            <HexColorPicker color={boxColor} onChange={(v) => onChange('boxColor', v)} />
+          </div>
+        </div>
+        <SliderRow
+          label="立方体大小"
+          value={(params.boxSize as number) ?? 0.4}
+          min={0.1}
+          max={1.5}
+          step={0.05}
+          onChange={(v) => onChange('boxSize', v)}
+        />
+        <SliderRow
+          label="律动强度"
+          value={(params.reactBox as number) ?? 1.2}
+          min={0}
+          max={2}
+          step={0.05}
+          onChange={(v) => onChange('reactBox', v)}
+        />
       </>
     )
   }
